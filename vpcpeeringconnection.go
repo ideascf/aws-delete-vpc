@@ -10,7 +10,12 @@ import (
 	"go.uber.org/multierr"
 )
 
-func deleteVpcPeeringConnections(ctx context.Context, client *ec2.Client, vpcId string, vpcPeeringConnections []types.VpcPeeringConnection) (errs error) {
+func deleteVpcPeeringConnections(ctx context.Context, client *ec2.Client, vpcId string, vpcPeeringConnections []types.VpcPeeringConnection, dryRun bool) (errs error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of VpcPeering")
+		return nil
+	}
+
 	for _, vpcPeeringConnection := range vpcPeeringConnections {
 		if vpcPeeringConnection.VpcPeeringConnectionId == nil {
 			continue

@@ -9,7 +9,12 @@ import (
 	"go.uber.org/multierr"
 )
 
-func deleteLoadBalancers(ctx context.Context, client *elasticloadbalancing.Client, loadBalancerDescriptions []types.LoadBalancerDescription) (errs error) {
+func deleteLoadBalancers(ctx context.Context, client *elasticloadbalancing.Client, loadBalancerDescriptions []types.LoadBalancerDescription, dryRun bool) (errs error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of LoadBalancer")
+		return nil
+	}
+
 	for _, loadBalancerDescription := range loadBalancerDescriptions {
 		if loadBalancerDescription.LoadBalancerName == nil {
 			continue

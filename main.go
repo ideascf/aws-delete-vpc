@@ -59,15 +59,18 @@ func run() error {
 	tries := flag.Int("tries", 3, "tries")
 	vpcId := flag.String("vpc-id", "", "VPC ID")
 	region := flag.String("region", "", "AWS Region (default: system)")
+	dryRun := flag.Bool("dry-run", false, "dry run model")
 
 	flag.Parse()
 
 	ctx := context.Background()
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	if *dryRun {
+		log.Info().Msg("run with dry-run")
+	}
 
 	reg := config.WithRegion(*region)
-
 	config, err := config.LoadDefaultConfig(ctx, reg)
 	if err != nil {
 		return err
@@ -138,7 +141,7 @@ func run() error {
 		return errors.New("VPC ID not set")
 	}
 
-	deleted, err := tryDeleteVpc(ctx, clients.ec2, *vpcId)
+	deleted, err := tryDeleteVpc(ctx, clients.ec2, *vpcId, *dryRun)
 	log.Err(err).
 		Bool("deleted", deleted).
 		Str("vpcId", *vpcId).
@@ -149,7 +152,7 @@ func run() error {
 	case deleted:
 		if resources.contains("Clusters") {
 			if cluster != nil {
-				if err := deleteCluster(ctx, clients.eks, cluster); err != nil {
+				if err := deleteCluster(ctx, clients.eks, cluster, *dryRun); err != nil {
 					return err
 				}
 			}
@@ -165,23 +168,27 @@ func run() error {
 			time.Sleep(*retryInterval)
 		}
 
-		err := deleteVpcDependencies(ctx, clients, *clusterName, *vpcId, resources, autoScalingFilters)
+		err := deleteVpcDependencies(ctx, clients, *clusterName, *vpcId, resources, autoScalingFilters, *dryRun)
 		log.Err(err).
 			Str("vpcId", *vpcId).
 			Msg("deleteVpcDependencies")
 
-		deleted, err := tryDeleteVpc(ctx, clients.ec2, *vpcId)
+		deleted, err := tryDeleteVpc(ctx, clients.ec2, *vpcId, *dryRun)
 		log.Err(err).
 			Bool("deleted", deleted).
 			Str("vpcId", *vpcId).
 			Msg("tryDeleteVpc")
 		if deleted {
 			if resources.contains("Clusters") && cluster != nil {
-				if err := deleteCluster(ctx, clients.eks, cluster); err != nil {
+				if err := deleteCluster(ctx, clients.eks, cluster, *dryRun); err != nil {
 					// retry is required if cluster has node-groups
 					continue
 				}
 			}
+			return nil
+		}
+		if *dryRun {
+			log.Info().Msg("skip retry in dryrun mode")
 			return nil
 		}
 	}

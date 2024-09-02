@@ -9,7 +9,7 @@ import (
 	"go.uber.org/multierr"
 )
 
-func deleteNatGateways(ctx context.Context, client *ec2.Client, natGateways []types.NatGateway) (errs error) {
+func deleteNatGateways(ctx context.Context, client *ec2.Client, natGateways []types.NatGateway, dryRun bool) (errs error) {
 	for _, natGateway := range natGateways {
 		if natGateway.NatGatewayId == nil {
 			continue

@@ -10,7 +10,12 @@ import (
 	"go.uber.org/multierr"
 )
 
-func deleteSubnets(ctx context.Context, client *ec2.Client, vpcId string, subnets []types.Subnet) (errs error) {
+func deleteSubnets(ctx context.Context, client *ec2.Client, vpcId string, subnets []types.Subnet, dryRun bool) (errs error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of Subnet")
+		return nil
+	}
+
 	for _, subnet := range subnets {
 		if subnet.SubnetId == nil {
 			continue

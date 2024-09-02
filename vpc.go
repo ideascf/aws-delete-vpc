@@ -45,7 +45,7 @@ func deleteVpc(ctx context.Context, client *ec2.Client, vpcId string) error {
 
 // deleteVpcDependencies tries to delete all dependencies of the VPC with ID
 // vpcId. It accumulates errors.
-func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, vpcId string, resources stringSet, autoScalingFilters []autoscalingtypes.Filter) (errs error) {
+func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, vpcId string, resources stringSet, autoScalingFilters []autoscalingtypes.Filter, dryRun bool) (errs error) {
 	if resources.contains("VpcPeeringConnections") {
 		if vpcPeeringConnections, err := listVpcPeeringConnections(ctx, clients.ec2, vpcId); err != nil {
 			log.Err(err).Msg("listVpcPeeringConnections")
@@ -55,7 +55,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("vpcPeeringConnectionIds", vpcPeeringConnectionIds(vpcPeeringConnections)).
 				Msg("listVpcPeeringConnections")
 			if len(vpcPeeringConnections) > 0 {
-				err := deleteVpcPeeringConnections(ctx, clients.ec2, vpcId, vpcPeeringConnections)
+				err := deleteVpcPeeringConnections(ctx, clients.ec2, vpcId, vpcPeeringConnections, dryRun)
 				log.Err(err).
 					Strs("vpcPeeringConnectionIds", vpcPeeringConnectionIds(vpcPeeringConnections)).
 					Msg("deleteVpcPeeringConnections")
@@ -73,7 +73,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("loadBalancerNames", loadBalancerNames(loadBalancerDescriptions)).
 				Msg("listLoadBalancers")
 			if len(loadBalancerDescriptions) > 0 {
-				err := deleteLoadBalancers(ctx, clients.elasticloadbalancing, loadBalancerDescriptions)
+				err := deleteLoadBalancers(ctx, clients.elasticloadbalancing, loadBalancerDescriptions, dryRun)
 				log.Err(err).
 					Strs("loadBalancerNames", loadBalancerNames(loadBalancerDescriptions)).
 					Msg("deleteLoadBalancers")
@@ -96,7 +96,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 					Strs("autoScalingGroupNames", autoScalingGroupNames(autoScalingGroups)).
 					Msg("listAutoScalingGroups")
 				if len(autoScalingGroups) > 0 {
-					err := deleteAutoScalingGroups(ctx, clients.autoscaling, clients.ec2, autoScalingGroups)
+					err := deleteAutoScalingGroups(ctx, clients.autoscaling, clients.ec2, autoScalingGroups, dryRun)
 					log.Err(err).
 						Strs("autoScalingGroupNames", autoScalingGroupNames(autoScalingGroups)).
 						Msg("deleteAutoScalingGroups")
@@ -115,7 +115,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("instanceIds", instanceIds(reservations)).
 				Msg("listReservations")
 			if len(reservations) > 0 {
-				err := terminateInstancesInReservations(ctx, clients.ec2, reservations)
+				err := terminateInstancesInReservations(ctx, clients.ec2, reservations, dryRun)
 				log.Err(err).
 					Strs("instanceIds", instanceIds(reservations)).
 					Msg("terminateInstancesInReservations")
@@ -134,7 +134,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("networkAcls", networkAclIds(networkAcls)).
 				Msg("listNetworkAcls")
 			if len(networkAcls) > 0 {
-				err := deleteNetworkAcls(ctx, clients.ec2, vpcId, networkAcls)
+				err := deleteNetworkAcls(ctx, clients.ec2, vpcId, networkAcls, dryRun)
 				log.Err(err).
 					Strs("networkAcls", networkAclIds(networkAcls)).
 					Msg("deleteNetworkAcls")
@@ -153,7 +153,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("networkInterfaceIds", networkInterfaceIds(networkInterfaces)).
 				Msg("listNetworkInterfaces")
 			if len(networkInterfaces) > 0 {
-				err := deleteNetworkInterfaces(ctx, clients.ec2, networkInterfaces)
+				err := deleteNetworkInterfaces(ctx, clients.ec2, networkInterfaces, dryRun)
 				log.Err(err).
 					Strs("networkInterfaceIds", networkInterfaceIds(networkInterfaces)).
 					Msg("deleteNetworkInterfaces")
@@ -172,7 +172,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("natGatewayIds", natGatewayIds(natGateways)).
 				Msg("listNatGateways")
 			if len(natGateways) > 0 {
-				err := deleteNatGateways(ctx, clients.ec2, natGateways)
+				err := deleteNatGateways(ctx, clients.ec2, natGateways, dryRun)
 				log.Err(err).
 					Strs("natGatewayIds", natGatewayIds(natGateways)).
 					Msg("deleteNatGateways")
@@ -190,7 +190,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("internetGatewayIds", internetGatewayIds(internetGateways)).
 				Msg("listInternetGateways")
 			if len(internetGateways) > 0 {
-				err := deleteInternetGateways(ctx, clients.ec2, vpcId, internetGateways)
+				err := deleteInternetGateways(ctx, clients.ec2, vpcId, internetGateways, dryRun)
 				log.Err(err).
 					Strs("internetGatewayIds", internetGatewayIds(internetGateways)).
 					Msg("deleteInternetGateways")
@@ -208,7 +208,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("subnetIds", subnetIds(subnets)).
 				Msg("listSubnets")
 			if len(subnets) > 0 {
-				err := deleteSubnets(ctx, clients.ec2, vpcId, subnets)
+				err := deleteSubnets(ctx, clients.ec2, vpcId, subnets, dryRun)
 				log.Err(err).
 					Strs("subnetIds", subnetIds(subnets)).
 					Msg("deleteSubnets")
@@ -226,7 +226,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("securityGroupIds", securityGroupIds(securityGroups)).
 				Msg("listNonDefaultSecurityGroups")
 			if len(securityGroups) > 0 {
-				err := deleteSecurityGroups(ctx, clients.ec2, vpcId, securityGroups)
+				err := deleteSecurityGroups(ctx, clients.ec2, vpcId, securityGroups, dryRun)
 				log.Err(err).
 					Strs("securityGroupIds", securityGroupIds(securityGroups)).
 					Msg("deleteSecurityGroups")
@@ -244,7 +244,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("routeTableIds", routeTableIds(routeTables)).
 				Msg("listRouteTables")
 			if len(routeTables) > 0 {
-				err := deleteRouteTables(ctx, clients.ec2, vpcId, routeTables)
+				err := deleteRouteTables(ctx, clients.ec2, vpcId, routeTables, dryRun)
 				log.Err(err).
 					Strs("routeTableIds", routeTableIds(routeTables)).
 					Msg("deleteRouteTables")
@@ -263,7 +263,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("vpnGatewayIds", vpnGatewayIds(vpnGateways)).
 				Msg("listVpnGateways")
 			if len(vpnGateways) > 0 {
-				err := deleteVpnGateways(ctx, clients.ec2, vpcId, vpnGateways)
+				err := deleteVpnGateways(ctx, clients.ec2, vpcId, vpnGateways, dryRun)
 				log.Err(err).
 					Strs("vpnGatewayIds", vpnGatewayIds(vpnGateways)).
 					Msg("deleteVpnGateways")
@@ -287,7 +287,7 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 				Strs("publicIps", publicIps(addresses)).
 				Msg("listElasticIps")
 			if len(addresses) > 0 {
-				err := releaseElasticIps(ctx, clients.ec2, addresses)
+				err := releaseElasticIps(ctx, clients.ec2, addresses, dryRun)
 				log.Err(err).
 					Strs("publicIps", publicIps(addresses)).
 					Msg("deleteElasticIps")
@@ -296,9 +296,10 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 		}
 	}
 
-	err := deleteVpc(ctx, clients.ec2, vpcId)
+	ok, err := tryDeleteVpc(ctx, clients.ec2, vpcId, dryRun)
 	log.Err(err).
 		Str("vpcId", vpcId).
+		Bool("deleted", ok).
 		Msg("deleteVpc")
 	errs = multierr.Append(errs, err)
 
@@ -341,7 +342,11 @@ func findVpcsByName(ctx context.Context, client *ec2.Client, name string) ([]ec2
 // indicating if the VPC was deleted and any error. If the VPC was not deleted
 // and the error is nil then the VPC has dependencies that must be deleted
 // first.
-func tryDeleteVpc(ctx context.Context, client *ec2.Client, vpcId string) (bool, error) {
+func tryDeleteVpc(ctx context.Context, client *ec2.Client, vpcId string, dryRun bool) (bool, error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of VPC")
+		return false, nil
+	}
 	err := deleteVpc(ctx, client, vpcId)
 	if err == nil {
 		return true, nil

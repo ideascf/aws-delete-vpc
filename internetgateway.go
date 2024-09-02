@@ -10,7 +10,12 @@ import (
 	"go.uber.org/multierr"
 )
 
-func deleteInternetGateways(ctx context.Context, client *ec2.Client, vpcId string, internetGateways []types.InternetGateway) (errs error) {
+func deleteInternetGateways(ctx context.Context, client *ec2.Client, vpcId string, internetGateways []types.InternetGateway, dryRun bool) (errs error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of IGW")
+		return nil
+	}
+
 	for _, internetGateway := range internetGateways {
 		if internetGateway.InternetGatewayId == nil {
 			continue

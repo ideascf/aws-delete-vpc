@@ -10,7 +10,12 @@ import (
 	"go.uber.org/multierr"
 )
 
-func deleteVpnGateways(ctx context.Context, client *ec2.Client, vpcId string, vpnGateways []types.VpnGateway) (errs error) {
+func deleteVpnGateways(ctx context.Context, client *ec2.Client, vpcId string, vpnGateways []types.VpnGateway, dryRun bool) (errs error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of VpnGateway")
+		return nil
+	}
+
 	for _, vpnGateway := range vpnGateways {
 		if vpnGateway.VpnGatewayId == nil {
 			continue

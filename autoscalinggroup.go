@@ -21,7 +21,12 @@ func autoScalingGroupNames(autoScalingGroups []types.AutoScalingGroup) []string 
 	return autoScalingGroupNames
 }
 
-func deleteAutoScalingGroups(ctx context.Context, client *autoscaling.Client, ec2Client *ec2.Client, autoScalingGroups []types.AutoScalingGroup) (errs error) {
+func deleteAutoScalingGroups(ctx context.Context, client *autoscaling.Client, ec2Client *ec2.Client, autoScalingGroups []types.AutoScalingGroup, dryRun bool) (errs error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of AutoScalingGroup")
+		return nil
+	}
+
 	for _, autoScalingGroup := range autoScalingGroups {
 		if autoScalingGroup.AutoScalingGroupName == nil {
 			continue

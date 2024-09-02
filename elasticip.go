@@ -9,7 +9,12 @@ import (
 	"go.uber.org/multierr"
 )
 
-func releaseElasticIps(ctx context.Context, client *ec2.Client, addresses []types.Address) (errs error) {
+func releaseElasticIps(ctx context.Context, client *ec2.Client, addresses []types.Address, dryRun bool) (errs error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of EIP")
+		return nil
+	}
+
 	for _, address := range addresses {
 		_, err := client.ReleaseAddress(ctx, &ec2.ReleaseAddressInput{
 			AllocationId: address.AllocationId,

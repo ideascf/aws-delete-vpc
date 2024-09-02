@@ -19,7 +19,12 @@ func allocationIds(addresses []types.Address) []string {
 	return allocationIds
 }
 
-func deleteNetworkInterfaces(ctx context.Context, client *ec2.Client, networkInterfaces []types.NetworkInterface) (errs error) {
+func deleteNetworkInterfaces(ctx context.Context, client *ec2.Client, networkInterfaces []types.NetworkInterface, dryRun bool) (errs error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of NetworkInterface")
+		return nil
+	}
+
 	for _, networkInterface := range networkInterfaces {
 		if networkInterface.NetworkInterfaceId == nil {
 			continue

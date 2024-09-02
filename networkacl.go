@@ -9,7 +9,12 @@ import (
 	"go.uber.org/multierr"
 )
 
-func deleteNetworkAcls(ctx context.Context, client *ec2.Client, vpcId string, networkAcls []types.NetworkAcl) (errs error) {
+func deleteNetworkAcls(ctx context.Context, client *ec2.Client, vpcId string, networkAcls []types.NetworkAcl, dryRun bool) (errs error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of ACL")
+		return nil
+	}
+
 	for _, networkAcl := range networkAcls {
 		if networkAcl.NetworkAclId == nil {
 			continue

@@ -2,15 +2,26 @@ package main
 
 import (
 	"context"
+
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/eks/types"
+	"github.com/rs/zerolog/log"
 )
 
-func deleteClusterNodeGroups(ctx context.Context, client *eks.Client, cluster *types.Cluster) error {
+func deleteClusterNodeGroups(ctx context.Context, client *eks.Client, cluster *types.Cluster, dryRun bool) error {
 	nodeGroups, err := listClusterNodeGroups(ctx, client, cluster)
 	if err != nil {
 		return err
 	}
+	log.Info().
+		Strs("nodeGroupIds", nodeGroups).
+		Msg("listClusterNodeGroups")
+
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of NodeGroup")
+		return nil
+	}
+
 	for _, group := range nodeGroups {
 		_, err = client.DeleteNodegroup(ctx, &eks.DeleteNodegroupInput{
 			ClusterName:   cluster.Name,

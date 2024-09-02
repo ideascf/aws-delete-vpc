@@ -9,7 +9,12 @@ import (
 	"go.uber.org/multierr"
 )
 
-func deleteSecurityGroups(ctx context.Context, client *ec2.Client, vpcId string, securityGroups []types.SecurityGroup) (errs error) {
+func deleteSecurityGroups(ctx context.Context, client *ec2.Client, vpcId string, securityGroups []types.SecurityGroup, dryRun bool) (errs error) {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of SecurityGroup")
+		return nil
+	}
+
 	for _, securityGroup := range securityGroups {
 		if securityGroup.GroupId == nil {
 			continue

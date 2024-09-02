@@ -9,12 +9,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func deleteCluster(ctx context.Context, client *eks.Client, cluster *types.Cluster) error {
-	if err := deleteClusterNodeGroups(ctx, client, cluster); err != nil {
+func deleteCluster(ctx context.Context, client *eks.Client, cluster *types.Cluster, dryRun bool) error {
+	if err := deleteClusterNodeGroups(ctx, client, cluster, dryRun); err != nil {
 		log.Err(err).
 			Str("Name", *cluster.Name).
 			Msg("DeleteClusterNodeGroups")
 		return err
+	}
+
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of EKS")
+		return nil
 	}
 	_, err := client.DeleteCluster(ctx, &eks.DeleteClusterInput{
 		Name: cluster.Name,

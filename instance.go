@@ -38,7 +38,12 @@ func listReservations(ctx context.Context, client *ec2.Client, vpcId string) ([]
 	}
 }
 
-func terminateInstancesInReservations(ctx context.Context, client *ec2.Client, reservations []types.Reservation) error {
+func terminateInstancesInReservations(ctx context.Context, client *ec2.Client, reservations []types.Reservation, dryRun bool) error {
+	if dryRun {
+		log.Info().Msg("[dryrun]Skipping deletion of EC2")
+		return nil
+	}
+
 	// Find all non-terminated Instances.
 	var nonTerminatedInstanceIds []string
 	for _, reservation := range reservations {
