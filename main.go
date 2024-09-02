@@ -58,6 +58,7 @@ func run() error {
 	retryInterval := flag.Duration("retry-interval", 1*time.Minute, "Re-try interval")
 	tries := flag.Int("tries", 3, "tries")
 	vpcId := flag.String("vpc-id", "", "VPC ID")
+	region := flag.String("region", "", "AWS Region (default: system)")
 
 	flag.Parse()
 
@@ -65,10 +66,13 @@ func run() error {
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	config, err := config.LoadDefaultConfig(ctx)
+	reg := config.WithRegion(*region)
+
+	config, err := config.LoadDefaultConfig(ctx, reg)
 	if err != nil {
 		return err
 	}
+
 	clients := newClientsFromConfig(config)
 
 	var cluster *ekstypes.Cluster
