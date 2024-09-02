@@ -124,6 +124,24 @@ func deleteVpcDependencies(ctx context.Context, clients *clients, clusterName, v
 		}
 	}
 
+	if resources.contains("VpcEndpoints") {
+		if endpoints, err := listVpcEndpoints(ctx, clients.ec2, vpcId); err != nil {
+			log.Err(err).Msg("listVpcEndpoints")
+			errs = multierr.Append(errs, err)
+		} else {
+			log.Info().
+				Strs("vpcEndpointIds", vpcEndpointIds(endpoints)).
+				Msg("listVpcEndpoints")
+			if len(endpoints) > 0 {
+				err := deleteVpcEndpoints(ctx, clients.ec2, vpcId, endpoints, dryRun)
+				log.Err(err).
+					Strs("vpcEndpointIds", vpcEndpointIds(endpoints)).
+					Msg("deleteVpcEndpoints")
+				errs = multierr.Append(errs, err)
+			}
+		}
+	}
+
 	if resources.contains("NetworkAcls") {
 		if networkAcls, err := listNonDefaultNetworkAcls(ctx, clients.ec2, vpcId); err != nil {
 			log.Err(err).

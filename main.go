@@ -48,6 +48,7 @@ func run() error {
 		"Subnets",
 		"VpcPeeringConnections",
 		"VpnGateways",
+		"VpcEndpoints",
 	)
 
 	autoScalingTagKey := flag.String("autoscaling-tag-key", "", "AutoScaling tag key")
